@@ -1,8 +1,8 @@
 from logging import getLogger
 import ckan.plugins as p
-from pylons import request, response
+from pylons import request, response, config
 #from SPARQLWrapper import SPARQLWrapper, JSON
-import urllib, json
+import urllib, urllib2, json
 import collections
 from urlparse import urlparse
 import csv
@@ -53,8 +53,14 @@ def sparqlQuery(data_structure):
     }
     
     querypart = urllib.urlencode(params_query)
-    temp_result = urllib.urlopen(request.params.get('server'),querypart)
+    log.debug("querypart: " + querypart)
+
+    server = request.params.get('server')
+    log.debug("server: " + server)
+
+    temp_result = urllib2.urlopen(server, querypart)
     response_query = temp_result.read()
+    log.debug("response_query: " + response_query)
     
     if request.params.get('type_response_query') == 'json': 
         data=json.loads(response_query, object_pairs_hook=collections.OrderedDict)
@@ -116,6 +122,16 @@ def check_is_url(strtocheck):
     results = urlparse(strtocheck)
     return results.scheme
 
+def endpoint_url():
+    endpointUrl = config.get('ckanext.sparql.endpoint_url', 'http://dbpedia.org/sparql')
+    #log.debug("endpointUrl: " + endpointUrl)
+    return endpointUrl
+
+def hide_endpoint_url():
+    hideEndpointUrl = p.toolkit.asbool(config.get('ckanext.sparql.hide_endpoint_url', 'False'))
+    #log.debug("hideEndpointUrl: %s" % hideEndpointUrl)
+    return hideEndpointUrl
+
 ### CLASS ###
 
 class SparqlPlugin(p.SingletonPlugin):
@@ -149,6 +165,8 @@ class SparqlPlugin(p.SingletonPlugin):
                 'get_query': get_query, 
                 'sparqlQuery': sparqlQuery, 
                 'check_direct_link': check_direct_link, 
-                'check_is_url': check_is_url
+                'check_is_url': check_is_url,
+                'sparql_endpoint_url': endpoint_url,
+                'sparql_hide_endpoint_url': hide_endpoint_url
                 #'sparql_query_SPARQLWrapper': sparql_query_SPARQLWrapper
                 }
